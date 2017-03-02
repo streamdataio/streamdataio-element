@@ -1,0 +1,35 @@
+{
+  "name": "streamdataio-element",
+  "version": "1.0.0",
+  "authors": [
+    "Streamdata.io",
+    "Audrey Neveu <neveu.audrey@gmail.com>"
+  ],
+  "description": "A custom element to receive stream of data through Streamdata.io proxy in Polymer",
+  "keywords": [
+    "Streamdata",
+    "Streamdata.io",
+    "Polymer",
+    "web-components",
+    "Real-Time",
+    "Server-Sent Events",
+    "sse"
+  ],
+  "main": "streamdataio-element.html",
+  "license": "Apache-2.0",
+  "ignore": [
+    "**/.*",
+    "bower_components",
+    "test"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.4.0",
+    "streamdataio": "https://github.com/streamdataio/streamdataio-js-sdk.git#v1.0.5"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^1.0.0",
+    "web-component-tester": "^4.0.0",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0"
+  }
+}
