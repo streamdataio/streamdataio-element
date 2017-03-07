@@ -1,38 +1,64 @@
-# \<streamdataio-element\>
+# streamdataio-element
 
-A custom element to use Streamdata.io proxy in Polymer
+A web component to stream APIs through [Streamdata.io](http://www.streamdata.io) proxy in Polymer.
 
-## Install the Polymer-CLI
+## Setup
 
-First, make sure you have the [Polymer CLI](https://www.npmjs.com/package/polymer-cli) installed. Then run `polymer serve` to serve your application locally.
+In order to use the Streamdata.io proxy, you need an App Token. Register on the [Developer Portal](https://portal.streamdata.io/#/register) to create your free account and get a valid token by creating a new app.
 
-## Viewing Your Application
+## Installing with Bower
 
-```
-$ polymer serve
-```
+To install this component, run: 
 
-## Building Your Application
-
-```
-$ polymer build
+```shell
+$ bower install --save streamdataio-element
 ```
 
-This will create a `build/` folder with `bundled/` and `unbundled/` sub-folders
-containing a bundled (Vulcanized) and unbundled builds, both run through HTML,
-CSS, and JS optimizers.
+## Compatibility
 
-You can serve the built versions by giving `polymer serve` a folder to serve
-from:
+This element is compatible with Polymer versions 1.x only.
 
+## Basic Usage
+
+```HTML
+<streamdata-io token="your-token"
+   url="http://your-api.com/"
+   path="/path"
+   response-data-type="array"
+   is-active="{{isActive}}"
+   on-snapshot="onSnapshot"
+   on-patch="onPatch">
+</streamdata-io>
+
+...
+
+<script>
+   Polymer({
+      is: 'my-real-time-component',
+      ...
+      onSnapshot: function (snapshot) {
+         this.myObjectToRefresh = snapshot.detail.data;
+         ...
+      },
+      onPatch: function (patch) {
+         jsonpatch.apply(this.myObjectToRefresh, patch.detail.data);
+          ...
+      }
+   )}
+</script>
 ```
-$ polymer serve build/bundled
-```
 
-## Running Tests
+Parameters: 
+* `token`: the Streamdata.io token of your application.
+* `url`: the url of the API to be streamed.
+* `path`: the path of the API to be streamed.
+* `response-data-type`: the type of data returned by the API. The two values accepted are `array` and `object`.
+* `is-active`: a boolean parameter to start or close the Server-Sent Event session.
+* `on-snapshot`: the method to call when the first snapshot is received.
+* `on-patch`: the method to call when incremental updates are received.
 
-```
-$ polymer test
-```
+Note: The params attribute must be double quoted JSON.
 
-Your application is already set up to be tested via [web-component-tester](https://github.com/Polymer/web-component-tester). Run `polymer test` to run your application's test suite locally.
+## Demo
+
+To see a full example of usage, check out the demo!

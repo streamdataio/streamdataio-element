@@ -24,7 +24,8 @@
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#^1.4.0",
-    "streamdataio": "https://github.com/streamdataio/streamdataio-js-sdk.git#v1.0.5"
+    "streamdataio-js-sdk": "streamdataio/streamdataio-js-sdk#^1.0.5",
+    "fast-json-patch": "^1.1.7"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",

@@ -1,0 +1,190 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<script src="../streamdataio-js-sdk/dist/streamdataio.min.js"></script>
+<script src="../fast-json-patch/dist/json-patch-duplex.min.js"></script>
+
+<!--
+`<streamdata-io>` streams any JSON APIs through [Streamdata.io](http://www.streamdata.io) proxy.
+
+### Setup
+
+In order to use the Streamdata.io proxy, you need an App Token. Register on the [Developer
+Portal](https://portal.streamdata.io/#/register) to create your free account and get a valid token by creating a new
+app.
+
+### Basic Usage
+
+    <streamdata-io token="your-token"
+                   url="http://your-api.com/"
+                   path="/path"
+                   response-data-type="object"
+                   is-active="{{isActive}}"
+                   on-snapshot="onSnapshot"
+                   on-patch="onPatch">
+    </streamdata-io>
+
+Note: The params attribute must be double quoted JSON.
+
+@element streamdata-io
+@blurb An element to stream JSON APIs through [Streamdata.io](http://www.streamdata.io) proxy.
+@homepage index.html
+@demo demo/index.html
+-->
+
+<script>
+    'use strict';
+
+    Polymer({
+        is: 'streamdata-io',
+
+        /**
+         * The `snapshot` event fires at the opening of the streaming session.
+         * The snapshot itself is in the `snapshot` event's `data.detail` property.
+         *
+         * @event snapshot
+         * @event {object} snapshot
+         */
+
+        /**
+         * The `patch` event fires when updates are available in json-patch format.
+         * The patch itself is in the `patch` event's `data.detail` property.
+         *
+         * @event patch
+         * @event {object} patch
+         */
+
+        /**
+         * The `response` event fires at the opening of the streaming session and then each time new data is available.
+         * The response itself is in the `response` event's `data.detail` property.
+         *
+         * @event response
+         * @event {object} response
+         */
+
+        properties: {
+            /**
+             * The `url` of the API to be streamed.
+             *
+             * **REQUIRED**
+             */
+            url: {
+                type: String
+            },
+            /**
+             * The `path` of the API to be streamed.
+             *
+             * **REQUIRED**
+             */
+            path: {
+                type: String,
+                observer: '_onPathChanged'
+            },
+
+            /**
+             * The Streamdata.io token of your application.
+             *
+             * **REQUIRED**
+             */
+            token: {
+                type: String
+            },
+            /**
+             * The type of data returned by the API. Could be `array` or `object`.
+             *
+             * **REQUIRED**
+             */
+            responseDataType: {
+                type: String
+            },
+
+            /**
+             * State of the Server-Sent Event session: `true` for opened, `false` for closed.
+             *
+             * **REQUIRED**
+             */
+            isActive: {
+                type: Boolean,
+                observer: '_isActive'
+            },
+
+            _eventSrc: {
+                type: Object,
+                value: function () {
+                    return {};
+                }
+            },
+            _arrayData: {
+                type: Array,
+                value: function () {
+                    return [];
+                }
+            },
+            _objectData: {
+                type: Object,
+                value: function () {
+                    return {};
+                }
+            }
+        },
+        ready: function () {
+            this._createEventSource();
+        },
+        _createEventSource: function () {
+            // local variable introduced to reduced code duplication
+            var data;
+
+            if (this.responseDataType === "array") {
+                data = this._arrayData;
+
+            } else if (this.responseDataType === "object") {
+                data = this._objectData;
+            }
+
+            this._eventSrc = streamdataio.createEventSource(this.url + this.path, this.token);
+
+            var self = this;
+            this._eventSrc.onData(function (snapshot) {
+                console.log("[streamdataio-element] onData:", snapshot);
+                // assign snapshot to data object to apply patch on it later
+                data = snapshot;
+
+                // send the original JSON object/array received.
+                self.fire('snapshot', {data: data});
+                self.fire('response', {data: data});
+
+            }).onPatch(function (patch) {
+                console.log("[streamdataio-element] onPatch:", patch);
+                // send the original patch
+                self.fire('patch', {data: patch});
+
+                // send the original JSON object/array patched
+                jsonpatch.apply(data, patch);
+                self.fire('response', {data: data});
+
+            }).onError(function (error) {
+                console.log('[streamdataio-element] onError', error);
+                if (self._eventSrc) {
+                    self._eventSrc.close();
+                }
+            });
+        },
+        _isActive: function (isActive) {
+            if (this.isActive) {
+                this._eventSrc.open();
+            } else {
+                this._eventSrc.close();
+            }
+        },
+        _onPathChanged: function (path) {
+            // run only if the eventSource object is instantiated
+            if (this._eventSrc.streamdataConfig) {
+                this._eventSrc.close();
+                this._createEventSource();
+                // same view with another path
+                if (this.isActive) {
+                    this._eventSrc.open();
+                }
+            }
+        }
+    });
+</script>
