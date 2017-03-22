@@ -15,6 +15,7 @@ app.
 ### Basic Usage
 
     <streamdata-io token="your-token"
+                auto
                    url="http://your-api.com/"
                    path="/path"
                    response-data-type="object"
@@ -104,8 +105,15 @@ Note: The params attribute must be double quoted JSON.
              */
             isActive: {
                 type: Boolean,
-                observer: '_isActive'
             },
+
+            /**
+             * If true, session is created automatically on ready, else you need a manual call to createEventSource 
+             */
+            auto: {
+                type: Boolean,
+                value: false
+            }, 
 
             _eventSrc: {
                 type: Object,
@@ -126,10 +134,15 @@ Note: The params attribute must be double quoted JSON.
                 }
             }
         },
+        observers: [
+            "_isActive(isActive,_eventSrc)"
+        ],
         ready: function () {
-            this._createEventSource();
+            if (this.auto) {
+                this.createEventSource();
+            }            
         },
-        _createEventSource: function () {
+        createEventSource: function () {
             // local variable introduced to reduced code duplication
             var data;
 
@@ -140,7 +153,7 @@ Note: The params attribute must be double quoted JSON.
                 data = this._objectData;
             }
 
-            this._eventSrc = streamdataio.createEventSource(this.url + this.path, this.token);
+            this.set ("_eventSrc", streamdataio.createEventSource(this.url + this.path, this.token));
 
             var self = this;
             this._eventSrc.onData(function (snapshot) {
@@ -168,18 +181,22 @@ Note: The params attribute must be double quoted JSON.
                 }
             });
         },
-        _isActive: function (isActive) {
+        _isActive: function (isActive, _eventSrc) {
             if (this.isActive) {
-                this._eventSrc.open();
+                if (this._eventSrc.streamdataConfig) {
+                    this._eventSrc.open();
+                }                
             } else {
-                this._eventSrc.close();
+                if (this._eventSrc.streamdataConfig) {
+                    this._eventSrc.close();
+                }
             }
         },
         _onPathChanged: function (path) {
             // run only if the eventSource object is instantiated
             if (this._eventSrc.streamdataConfig) {
                 this._eventSrc.close();
-                this._createEventSource();
+                this.createEventSource();
                 // same view with another path
                 if (this.isActive) {
                     this._eventSrc.open();
