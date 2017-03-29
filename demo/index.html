@@ -46,6 +46,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <link rel="import" href="../../paper-input/paper-input.html">
     <link rel="import" href="../../paper-button/paper-button.html">
     <link rel="import" href="../../paper-styles/color.html">
+    <link rel="import" href="../../google-chart/google-chart.html">
 
     <link rel="import" href="../../streamdataio-element/streamdataio-element.html">
 
@@ -74,6 +75,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 background-color: var(--paper-grey-400);
                 color: white;
             }
+
+            google-chart {
+                width: 100%;
+                height: 400px;
+            }
         </style>
         <template>
             <div>In order to use the Streamdata.io proxy, you need an App Token. Register on the
@@ -85,6 +91,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             <paper-button id="createSessionButton" disabled noink toggles class="indigo" on-click="createSession">
                 Start Streaming!
             </paper-button>
+
+            <google-chart
+                    id="chart"
+                    type="column"
+                    options='{"title": "Stock Market Values",
+                              "vAxis": {"minValue" : 0, "maxValue": 10},
+                              "animation": {"duration": "1000"},
+                              "legend": "none"}'
+                    cols='[{"label": "Title", "type": "string"},{"label": "Price", "type": "number"}]'
+                    rows='[]'>
+            </google-chart>
+
             <streamdata-io
                     id="streamdataIo"
                     token="[[token]]"
@@ -92,8 +110,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     path="/prices"
                     response-data-type="array"
                     is-active="true"
-                    on-snapshot="onSnapshot"
-                    on-patch="onPatch"></streamdata-io>
+                    on-response="onResponse"></streamdata-io>
         </template>
         <script>
             Polymer({
@@ -118,15 +135,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     }
                 },
                 createSession: function () {
-                    console.debug("createSession");
                     this.$.streamdataIo.createEventSource();
                 },
-                onSnapshot: function (detail) {
-                    console.debug("onSnapshot", detail);
+                onResponse: function (evt, detail) {
+                    this.stocks = detail.data;
+                    this._redrawChart();
                 },
-                onPatch: function (detail) {
-                    console.debug("onPatch", detail);
-                },
+                _redrawChart: function () {
+                    var dataArray = [];
+                    this.stocks.forEach(function (line) {
+                        dataArray.push([line.title, line.price]);
+                    });
+                    this.$.chart.rows = dataArray;
+                }
             });
         </script>
     </dom-module>

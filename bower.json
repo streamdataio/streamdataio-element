@@ -26,7 +26,8 @@
     "polymer": "Polymer/polymer#^1.4.0",
     "streamdataio-js-sdk": "streamdataio/streamdataio-js-sdk#^1.0.5",
     "fast-json-patch": "^1.1.7",
-    "paper-styles": "PolymerElements/paper-styles#^1.2.0"
+    "paper-styles": "PolymerElements/paper-styles#^1.2.0",
+    "google-chart": "GoogleWebComponents/google-chart#^1.1.2"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
