@@ -172,7 +172,22 @@ And then, add a new method to call the `createEventSource` method on your compon
       onResponse: function (evt, detail) {
         this.myObjectToRefresh = detail.data;
         ...
-      }
+    }
    )}
 </script>
+```
+
+### Use HTTP Headers
+
+If the API you're streaming through Streamdata.io requires HTTP Headers to be accessed, you can provide them as a JSON Array object to the `streamdata-io` component with the `httpHeader` parameter:
+
+```HTML
+<streamdata-io token="your-token"
+               auto
+               http-headers='["header1:header1Value", "header2:header2Value"]'
+               url="http://your-api.com/"
+               response-data-type="object"
+               is-active="{{isActive}}"
+               on-response="onResponse">
+</streamdata-io>
 ```

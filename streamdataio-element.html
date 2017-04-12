@@ -151,6 +151,19 @@ And then, add a new method to call the `createEventSource` method on your compon
        )}
     </script>
 
+### Use HTTP Headers
+
+If the API you're streaming through Streamdata.io requires HTTP Headers to be accessed, you can provide them as a JSON Array object to the `streamdata-io` component with the `httpHeader` parameter:
+
+    <streamdata-io token="your-token"
+                   auto
+                   http-headers='["header1:header1Value", "header2:header2Value"]'
+                   url="http://your-api.com/"
+                   response-data-type="object"
+                   is-active="{{isActive}}"
+                   on-response="onResponse">
+    </streamdata-io>
+
 @element streamdata-io
 @blurb An element to stream JSON APIs through [Streamdata.io](http://www.streamdata.io) proxy.
 @homepage index.html
@@ -188,6 +201,15 @@ And then, add a new method to call the `createEventSource` method on your compon
          */
 
         properties: {
+            /**
+             * HTTP Headers in JSON format, separated by comma.
+             */
+            httpHeaders: {
+                type: Array,
+                value: function () {
+                    return [];
+                }
+            },
             /**
              * The `url` of the API to be streamed.
              *
@@ -280,7 +302,7 @@ And then, add a new method to call the `createEventSource` method on your compon
             }
 
             var api = this.path ? this.url.concat(this.path) : this.url;
-            this.set("_eventSrc", streamdataio.createEventSource(api, this.token));
+            this.set("_eventSrc", streamdataio.createEventSource(api, this.token, this.httpHeaders));
 
             var self = this;
             this._eventSrc.onData(function (snapshot) {
