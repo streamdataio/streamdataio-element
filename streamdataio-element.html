@@ -100,7 +100,7 @@ Don't forget to use the `jsonpatch` library embedded in the component to apply u
             ...
         },
         onPatch: function (evt, detail) {
-            jsonpatch.apply(this.myObjectToRefresh, detail.data);
+            this.myObjectToRefresh = jsonpatch.applyPatch(this.myObjectToRefresh, patch).newDocument;
             ...
         }
        )}
@@ -318,7 +318,7 @@ If the API you're streaming through Streamdata.io requires HTTP Headers to be ac
                 self.fire('patch', {data: patch});
 
                 // send the original JSON object/array patched
-                jsonpatch.apply(data, patch);
+                data = jsonpatch.applyPatch(data, patch).newDocument;
                 self.fire('response', {data: data});
 
             }).onError(function (error) {

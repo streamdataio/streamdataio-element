@@ -119,7 +119,7 @@ Don't forget to use the `jsonpatch` library embedded in the component to apply u
         ...
     },
     onPatch: function (evt, detail) {
-         jsonpatch.apply(this.myObjectToRefresh, detail.data);
+         this.myObjectToRefresh = jsonpatch.applyPatch(this.myObjectToRefresh, patch).newDocument;
          ...
     }
    )}
