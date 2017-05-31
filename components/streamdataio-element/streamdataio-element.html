@@ -1,0 +1,353 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<script src="../streamdataio-js-sdk/dist/streamdataio.min.js"></script>
+<script src="../fast-json-patch/dist/json-patch-duplex.min.js"></script>
+
+<!--
+`<streamdata-io>` streams any JSON APIs through [Streamdata.io](http://www.streamdata.io) proxy.
+
+## Setup
+
+In order to use the Streamdata.io proxy, you need an App Token. Register on the [Developer
+Portal](https://portal.streamdata.io/#/register) to create your free account and get a valid token by creating a new
+application.
+
+## Basic Usage
+
+    <streamdata-io token="your-token"
+                   auto
+                   url="http://your-api.com/"
+                   response-data-type="object"
+                   is-active="{{isActive}}"
+                   on-response="onResponse">
+    </streamdata-io>
+
+    ...
+
+    <script>
+       Polymer({
+          is: 'my-real-time-component',
+          ...
+          onResponse: function (evt, detail) {
+            this.myObjectToRefresh = detail.data;
+            ...
+          }
+       )}
+    </script>
+
+Note: The params attribute must be double quoted JSON.
+
+## More options
+
+### Dealing with Arrays
+
+If the API you're streaming sends `array`, you'll need to override the dirty checking performs by Polymer in version 1.0 to dynamically update your display:
+
+    <streamdata-io token="your-token"
+                   auto
+                   url="http://your-api.com/"
+                   response-data-type="array"
+                   is-active="{{isActive}}"
+                   on-response="onResponse">
+    </streamdata-io>
+
+    ...
+
+    <script>
+       Polymer({
+          is: 'my-real-time-component',
+          properties: {
+            myArrayToRefresh: {
+                type: Array,
+                value: function () {
+                    return [];
+                }
+            }
+          },
+          ...
+          onResponse: function (evt, detail) {
+            var arrayToRefresh = detail.data;
+            this.set("myArrayToRefresh", []);
+            this.set("myArrayToRefresh", arrayToRefresh);
+            ...
+          }
+       )}
+    </script>
+
+See [override dirty checking](https://www.polymer-project.org/1.0/docs/devguide/model-data#override-dirty-check) in Polymer documentation for more information.
+
+### Handle initial snapshot and incremental updates separately
+
+In case you need to handle the initial snapshot of data and incremental updates in different methods, you can listen to the `snapshot` and `patch` events instead of `response`:
+
+    <streamdata-io token="your-token"
+                   auto
+                   url="http://your-api.com/"
+                   response-data-type="object"
+                   is-active="{{isActive}}"
+                   on-snapshot="onSnapshot"
+                   on-patch="onPatch">
+    </streamdata-io>
+
+Don't forget to use the `jsonpatch` library embedded in the component to apply updates:
+
+     <script>
+       Polymer({
+        is: 'my-real-time-component',
+        ...
+        onSnapshot: function (evt, detail) {
+            this.myObjectToRefresh = detail.data;
+            ...
+        },
+        onPatch: function (evt, detail) {
+            this.myObjectToRefresh = jsonpatch.applyPatch(this.myObjectToRefresh, patch).newDocument;
+            ...
+        }
+       )}
+    </script>
+
+### Listen to path changes
+
+If you want to use your component with different paths for the same resource, you can pass them dynamically to the `streamdata-io` element with the `path` attribute:
+
+    <streamdata-io token="your-token"
+                   auto
+                   url="http://your-api.com/"
+                   path="{{path}}"
+                   response-data-type="object"
+                   is-active="{{isActive}}"
+                   on-response="onResponse">
+    </streamdata-io>
+
+On each changes of the path, the streaming session will automatically be closed and reopened with the new path.
+
+### Manually create the streaming session
+
+If one or more parameters of your component attributes are dynamically injected, it's safer to set the `auto` parameter to `false`. Otherwise the streaming session might start without all needed parameters as you can't predict in which order those parameters will be loaded.
+
+To set the `auto` parameter to `false`, simply remove it from your component declaration:
+
+    <streamdata-io id="streamdataIo"
+                   token="your-token"
+                   url="http://your-api.com/"
+                   response-data-type="object"
+                   is-active="{{isActive}}"
+                   on-response="onResponse">
+    </streamdata-io>
+
+And then, add a new method to call the `createEventSource` method on your component by calling its id:
+
+    <script>
+       Polymer({
+          is: 'my-real-time-component',
+          ...
+          createSession: function () {
+            this.$.streamdataIo.createEventSource();
+          },
+          onResponse: function (evt, detail) {
+            this.myObjectToRefresh = detail.data;
+            ...
+          }
+       )}
+    </script>
+
+### Use HTTP Headers
+
+If the API you're streaming through Streamdata.io requires HTTP Headers to be accessed, you can provide them as a JSON Array object to the `streamdata-io` component with the `httpHeader` parameter:
+
+    <streamdata-io token="your-token"
+                   auto
+                   http-headers='["header1:header1Value", "header2:header2Value"]'
+                   url="http://your-api.com/"
+                   response-data-type="object"
+                   is-active="{{isActive}}"
+                   on-response="onResponse">
+    </streamdata-io>
+
+@element streamdata-io
+@blurb An element to stream JSON APIs through [Streamdata.io](http://www.streamdata.io) proxy.
+@homepage index.html
+@demo demo/index.html
+-->
+
+<script>
+    'use strict';
+
+    Polymer({
+        is: 'streamdata-io',
+
+        /**
+         * The `snapshot` event fires at the opening of the streaming session.
+         * The snapshot itself is in the `snapshot` event's `data.detail` property.
+         *
+         * @event snapshot
+         * @event {object} snapshot
+         */
+
+        /**
+         * The `patch` event fires when updates are available in json-patch format.
+         * The patch itself is in the `patch` event's `data.detail` property.
+         *
+         * @event patch
+         * @event {object} patch
+         */
+
+        /**
+         * The `response` event fires at the opening of the streaming session and then each time new data is available.
+         * The response itself is in the `response` event's `data.detail` property.
+         *
+         * @event response
+         * @event {object} response
+         */
+
+        properties: {
+            /**
+             * HTTP Headers in JSON format, separated by comma.
+             */
+            httpHeaders: {
+                type: Array,
+                value: function () {
+                    return [];
+                }
+            },
+            /**
+             * The `url` of the API to be streamed.
+             *
+             * **REQUIRED**
+             */
+            url: {
+                type: String
+            },
+            /**
+             * The `path` of the API to be streamed.
+             */
+            path: {
+                type: String,
+                observer: '_onPathChanged'
+            },
+            /**
+             * The Streamdata.io token of your application.
+             *
+             * **REQUIRED**
+             */
+            token: {
+                type: String
+            },
+            /**
+             * The type of data returned by the API. Could be `array` or `object`.
+             *
+             * **REQUIRED**
+             */
+            responseDataType: {
+                type: String
+            },
+            /**
+             * State of the Server-Sent Event session: `true` for opened, `false` for closed.
+             *
+             * **REQUIRED**
+             */
+            isActive: {
+                type: Boolean
+            },
+            /**
+             * If true, the streaming session is automatically created on ready, else you need a manual call to `createEventSource()`.
+             *
+             * It's recommended to use this parameter only if your streaming session is using static parameters.
+             */
+            auto: {
+                type: Boolean,
+                value: false
+            },
+
+            _eventSrc: {
+                type: Object,
+                value: function () {
+                    return {};
+                }
+            },
+            _arrayData: {
+                type: Array,
+                value: function () {
+                    return [];
+                }
+            },
+            _objectData: {
+                type: Object,
+                value: function () {
+                    return {};
+                }
+            }
+        },
+        observers: [
+            "_isActive(isActive,_eventSrc)"
+        ],
+        ready: function () {
+            if (this.auto) {
+                this.createEventSource();
+            }
+        },
+
+        /**
+         * Creates the EventSource object and start the streaming session. Call this method only if you don't use the auto parameter.
+         */
+        createEventSource: function () {
+            // local variable introduced to reduced code duplication
+            var data;
+
+            if (this.responseDataType === "array") {
+                data = this._arrayData;
+
+            } else if (this.responseDataType === "object") {
+                data = this._objectData;
+            }
+
+            var api = this.path ? this.url.concat(this.path) : this.url;
+            this.set("_eventSrc", streamdataio.createEventSource(api, this.token, this.httpHeaders));
+
+            var self = this;
+            this._eventSrc.onData(function (snapshot) {
+                // assign snapshot to data object to apply patch on it later
+                data = snapshot;
+
+                // send the original JSON object/array received.
+                self.fire('snapshot', {data: data});
+                self.fire('response', {data: data});
+
+            }).onPatch(function (patch) {
+                // send the original patch
+                self.fire('patch', {data: patch});
+
+                // send the original JSON object/array patched
+                data = jsonpatch.applyPatch(data, patch).newDocument;
+                self.fire('response', {data: data});
+
+            }).onError(function (error) {
+                if (self._eventSrc) {
+                    self._eventSrc.close();
+                }
+            });
+        },
+        _isActive: function (isActive, _eventSrc) {
+            if (this.isActive) {
+                if (this._eventSrc.streamdataConfig) {
+                    this._eventSrc.open();
+                }
+            } else {
+                if (this._eventSrc.streamdataConfig) {
+                    this._eventSrc.close();
+                }
+            }
+        },
+        _onPathChanged: function (path) {
+            // run only if the eventSource object is instantiated
+            if (this._eventSrc.streamdataConfig) {
+                this._eventSrc.close();
+                this.createEventSource();
+                // same view with another path
+                if (this.isActive) {
+                    this._eventSrc.open();
+                }
+            }
+        }
+    });
+</script>
